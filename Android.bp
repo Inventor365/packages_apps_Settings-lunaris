@@ -154,6 +154,7 @@ android_library {
         "tflite_support_java",
         "tensorflow-lite-gpu",
         "tensorflow-lite-gpu-api",
+        "ax_compose",
     ],
 
     plugins: [
