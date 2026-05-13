@@ -26,7 +26,6 @@ import android.util.Log;
 
 import androidx.window.embedding.ActivityFilter;
 import androidx.window.embedding.ActivityRule;
-import androidx.window.embedding.EmbeddingAspectRatio;
 import androidx.window.embedding.RuleController;
 import androidx.window.embedding.SplitAttributes;
 import androidx.window.embedding.SplitPairFilter;
@@ -116,7 +115,8 @@ public class ActivityEmbeddingRulesController {
                 .setMinWidthDp(ActivityEmbeddingUtils.getMinCurrentScreenSplitWidthDp(context))
                 .setMinSmallestWidthDp(
                         ActivityEmbeddingUtils.getMinSmallestScreenSplitWidthDp(context))
-                .setMaxAspectRatioInPortrait(EmbeddingAspectRatio.ALWAYS_ALLOW)
+                .setMaxAspectRatioInPortrait(
+                        ActivityEmbeddingUtils.getMaxAspectRatioInPortrait(context))
                 .setDefaultSplitAttributes(attributes)
                 .build();
         RuleController.getInstance(context).addRule(splitPairRule);
@@ -238,7 +238,8 @@ public class ActivityEmbeddingRulesController {
                 .setMinWidthDp(ActivityEmbeddingUtils.getMinCurrentScreenSplitWidthDp(mContext))
                 .setMinSmallestWidthDp(
                         ActivityEmbeddingUtils.getMinSmallestScreenSplitWidthDp(mContext))
-                .setMaxAspectRatioInPortrait(EmbeddingAspectRatio.ALWAYS_ALLOW)
+                .setMaxAspectRatioInPortrait(
+                        ActivityEmbeddingUtils.getMaxAspectRatioInPortrait(mContext))
                 .setSticky(false)
                 .setFinishPrimaryWithPlaceholder(SplitRule.FinishBehavior.ADJACENT)
                 .setDefaultSplitAttributes(attributes)

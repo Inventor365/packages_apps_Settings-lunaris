@@ -339,11 +339,18 @@ public class SettingsHomepageActivity extends FragmentActivity implements
             }
         }
         if (mIsEmbeddingActivityEnabled) {
-            final SplitController splitController = SplitController.getInstance(this);
-            mSplitControllerAdapter = new SplitControllerCallbackAdapter(splitController);
-            mCallback = new SplitInfoCallback(this);
-            mSplitControllerAdapter.addSplitListener(this, Runnable::run, mCallback);
+            startListeningForSplitChanges();
         }
+    }
+
+    private void startListeningForSplitChanges() {
+        if (mSplitControllerAdapter != null) {
+            return;
+        }
+        final SplitController splitController = SplitController.getInstance(this);
+        mSplitControllerAdapter = new SplitControllerCallbackAdapter(splitController);
+        mCallback = new SplitInfoCallback(this);
+        mSplitControllerAdapter.addSplitListener(this, Runnable::run, mCallback);
     }
 
     @Override
@@ -388,6 +395,12 @@ public class SettingsHomepageActivity extends FragmentActivity implements
     @Override
     public void onConfigurationChanged(Configuration newConfig) {
         super.onConfigurationChanged(newConfig);
+        final boolean wasEmbeddingActivityEnabled = mIsEmbeddingActivityEnabled;
+        mIsEmbeddingActivityEnabled = ActivityEmbeddingUtils.isEmbeddingActivityEnabled(this);
+        if (!wasEmbeddingActivityEnabled && mIsEmbeddingActivityEnabled) {
+            initSplitPairRules();
+            startListeningForSplitChanges();
+        }
         updateHomepageUI();
     }
 
@@ -524,9 +537,7 @@ public class SettingsHomepageActivity extends FragmentActivity implements
     }
 
     private boolean shouldLaunchDeepLinkIntentToRight() {
-        if (!ActivityEmbeddingUtils.isSettingsSplitEnabled(this)
-                || !FeatureFlagUtils.isEnabled(this,
-                        FeatureFlagUtils.SETTINGS_SUPPORT_LARGE_SCREEN)) {
+        if (!ActivityEmbeddingUtils.isEmbeddingActivityEnabled(this)) {
             return false;
         }
 

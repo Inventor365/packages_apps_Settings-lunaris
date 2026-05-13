@@ -23,7 +23,6 @@ import android.database.ContentObserver;
 import android.hardware.fingerprint.FingerprintManager;
 import android.net.Uri;
 import android.provider.Settings;
-import android.util.FeatureFlagUtils;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
@@ -97,9 +96,7 @@ public class SettingsApplication extends Application {
         // Set Spa environment.
         setSpaEnvironment();
 
-        if (ActivityEmbeddingUtils.isSettingsSplitEnabled(this)
-                && FeatureFlagUtils.isEnabled(this,
-                        FeatureFlagUtils.SETTINGS_SUPPORT_LARGE_SCREEN)) {
+        if (ActivityEmbeddingUtils.isSettingsSplitEnabled(this)) {
             if (WizardManagerHelper.isUserSetupComplete(this)) {
                 new ActivityEmbeddingRulesController(this).initRules();
             } else {

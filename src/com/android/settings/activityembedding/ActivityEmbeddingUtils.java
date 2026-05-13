@@ -20,6 +20,7 @@ import static android.window.DesktopExperienceFlags.ENABLE_ACTIVITY_EMBEDDING_SU
 
 import android.app.Activity;
 import android.content.Context;
+import android.content.res.Configuration;
 import android.os.SystemProperties;
 import android.util.DisplayMetrics;
 import android.util.FeatureFlagUtils;
@@ -27,7 +28,9 @@ import android.util.Log;
 import android.util.TypedValue;
 
 import androidx.window.embedding.ActivityEmbeddingController;
+import androidx.window.embedding.EmbeddingAspectRatio;
 import androidx.window.embedding.SplitController;
+import androidx.window.embedding.SplitRule;
 
 import com.android.settings.R;
 
@@ -59,6 +62,9 @@ public class ActivityEmbeddingUtils {
 
     /** Get the smallest width dp of the window when the split should be used. */
     public static int getMinCurrentScreenSplitWidthDp(Context context) {
+        if (shouldForceEnableForLandscape(context)) {
+            return SplitRule.SPLIT_MIN_DIMENSION_ALWAYS_ALLOW;
+        }
         return context.getResources().getInteger(R.integer.config_activity_embed_split_min_cur_dp);
     }
 
@@ -67,6 +73,9 @@ public class ActivityEmbeddingUtils {
      * the split should be used.
      */
     public static int getMinSmallestScreenSplitWidthDp(Context context) {
+        if (shouldForceEnableForLandscape(context)) {
+            return SplitRule.SPLIT_MIN_DIMENSION_ALWAYS_ALLOW;
+        }
         return context.getResources().getInteger(R.integer.config_activity_embed_split_min_sw_dp);
     }
 
@@ -78,12 +87,17 @@ public class ActivityEmbeddingUtils {
         return context.getResources().getFloat(R.dimen.config_activity_embed_split_ratio);
     }
 
+    public static EmbeddingAspectRatio getMaxAspectRatioInPortrait(Context context) {
+        return shouldForceEnableForLandscape(context) ? EmbeddingAspectRatio.ALWAYS_DISALLOW
+                : EmbeddingAspectRatio.ALWAYS_ALLOW;
+    }
+
     /**
      * Returns {@code true} to indicate that Settings app support the Activity Embedding feature on
      * this device. Returns {@code false}, otherwise.
      */
     public static boolean isSettingsSplitEnabled(Context context) {
-        return SHOULD_ENABLE_LARGE_SCREEN_OPTIMIZATION
+        return (SHOULD_ENABLE_LARGE_SCREEN_OPTIMIZATION || isLandscape(context))
                 && SplitController.getInstance(context).getSplitSupportStatus()
                 == SplitController.SplitSupportStatus.SPLIT_AVAILABLE;
     }
@@ -104,7 +118,9 @@ public class ActivityEmbeddingUtils {
             return false;
         }
         // Activity Embedding feature is not enabled if a user chooses to disable the feature.
-        if (!FeatureFlagUtils.isEnabled(context, FeatureFlagUtils.SETTINGS_SUPPORT_LARGE_SCREEN)) {
+        if (!isLandscape(context)
+                && !FeatureFlagUtils.isEnabled(context,
+                        FeatureFlagUtils.SETTINGS_SUPPORT_LARGE_SCREEN)) {
             Log.d(TAG, "isFlagEnabled = false");
             return false;
         }
@@ -130,5 +146,14 @@ public class ActivityEmbeddingUtils {
     public static boolean isAlreadyEmbedded(Activity activity) {
         return isEmbeddingActivityEnabled(activity) && ActivityEmbeddingController.getInstance(
                 activity).isActivityEmbedded(activity);
+    }
+
+    private static boolean shouldForceEnableForLandscape(Context context) {
+        return !SHOULD_ENABLE_LARGE_SCREEN_OPTIMIZATION && isLandscape(context);
+    }
+
+    private static boolean isLandscape(Context context) {
+        return context.getResources().getConfiguration().orientation
+                == Configuration.ORIENTATION_LANDSCAPE;
     }
 }
