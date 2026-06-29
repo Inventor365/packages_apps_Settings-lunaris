@@ -411,4 +411,8 @@
     <string name="reading_mode_override_summary">When on, reading mode is used everywhere and the app list below is ignored</string>
     <string name="reading_mode_apps_title">Apps</string>
     <string name="reading_mode_apps_loading">Loading apps…</string>
+
+    <!-- Backup -->
+    <string name="local_app_backup_restore_title">Local app backup and restore</string>
+    <string name="local_app_backup_restore_summary">Save APKs and app data as normal tar archives in internal storage</string>
 </resources>
