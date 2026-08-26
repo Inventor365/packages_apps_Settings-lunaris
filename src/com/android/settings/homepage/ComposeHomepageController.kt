@@ -30,6 +30,7 @@ import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.preference.Preference
+import android.net.wifi.WifiManager
 import com.android.internal.util.UserIcons
 import com.android.settings.R
 import com.android.settings.SettingsActivity
@@ -57,6 +58,9 @@ class ComposeHomepageController(private val activity: SettingsHomepageActivity) 
 
     fun onCreate(highlightMenuKey: String): TopLevelSettings {
         setupEdgeToEdge()
+
+        val wifiManager = activity.applicationContext
+            .getSystemService(Context.WIFI_SERVICE) as? WifiManager
 
         val root = FrameLayout(activity).apply {
             layoutParams = ViewGroup.LayoutParams(
@@ -108,8 +112,13 @@ class ComposeHomepageController(private val activity: SettingsHomepageActivity) 
             onPreferenceClick = java.util.function.Consumer { key ->
                 handlePreferenceClick(key, fragment)
             },
+            onWifiToggle = java.util.function.Consumer { enabled ->
+                wifiManager?.isWifiEnabled = enabled
+            },
             userName = getUserName(),
             avatarBitmap = getAvatarBitmap(),
+            isWifiEnabled = wifiManager?.isWifiEnabled ?: false,
+            wifiSummary = null,
             isCommunalAvailable = CommunalPreferenceController.isAvailable(activity),
             isSafetyCenterAvailable = SafetyCenterManagerWrapper.get().isEnabled(activity),
             isEmergencyAvailable = activity.resources.getBoolean(R.bool.config_show_emergency_settings),
@@ -141,9 +150,6 @@ class ComposeHomepageController(private val activity: SettingsHomepageActivity) 
 
     private fun handlePreferenceClick(key: String, fragment: TopLevelSettings) {
         when (key) {
-            "axion_hub" -> { launchExternalSettings("com.android.axion.axionparts", "com.android.axion.axionparts.DashboardActivity"); return }
-            "axion_themepicker" -> { launchExternalSettings("com.android.axion.themepicker", "com.android.axion.themepicker.ui.MainActivity"); return }
-            "top_level_about_device" -> { launchExternalSettings(activity.packageName, "com.android.settings.deviceinfo.axion.AxionAboutActivity"); return }
             "top_level_wellbeing" -> { launchExternalSettings(WELLBEING_PKG, WELLBEING_ACTIVITY); return }
             "top_level_google" -> { launchExternalSettings(GOOGLE_PKG, GOOGLE_ACTIVITY); return }
         }
