@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2025 The Android Open Source Project
+ * Copyright (C) 2024-2026 Lunaris AOSP
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,11 +20,14 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.graphics.Bitmap
+import android.net.ConnectivityManager
 import android.os.UserHandle
 import android.os.UserManager
+import android.provider.Settings
 import android.util.Log
 import android.view.ViewGroup
 import android.widget.FrameLayout
+import androidx.activity.OnBackPressedCallback
 import androidx.compose.ui.platform.ComposeView
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
@@ -55,12 +58,25 @@ class ComposeHomepageController(private val activity: SettingsHomepageActivity) 
     }
 
     private var userInfoReceiver: BroadcastReceiver? = null
+    private var airplaneModeReceiver: BroadcastReceiver? = null
+
+    private val editModeBackCallback = object : OnBackPressedCallback(false) {
+        override fun handleOnBackPressed() {
+            if (!SettingsHomepageComposeInterop.exitEditMode()) {
+                isEnabled = false
+                activity.onBackPressedDispatcher.onBackPressed()
+            }
+        }
+    }
 
     fun onCreate(highlightMenuKey: String): TopLevelSettings {
         setupEdgeToEdge()
+        activity.onBackPressedDispatcher.addCallback(activity, editModeBackCallback)
 
         val wifiManager = activity.applicationContext
             .getSystemService(Context.WIFI_SERVICE) as? WifiManager
+        val connectivityManager = activity.applicationContext
+            .getSystemService(ConnectivityManager::class.java)
 
         val root = FrameLayout(activity).apply {
             layoutParams = ViewGroup.LayoutParams(
@@ -115,10 +131,18 @@ class ComposeHomepageController(private val activity: SettingsHomepageActivity) 
             onWifiToggle = java.util.function.Consumer { enabled ->
                 wifiManager?.isWifiEnabled = enabled
             },
+            onAirplaneToggle = java.util.function.Consumer { enabled ->
+                setAirplaneMode(connectivityManager, enabled)
+            },
+            onEditModeChanged = java.util.function.Consumer { editing ->
+                editModeBackCallback.isEnabled = editing
+            },
             userName = getUserName(),
             avatarBitmap = getAvatarBitmap(),
             isWifiEnabled = wifiManager?.isWifiEnabled ?: false,
             wifiSummary = null,
+            isAirplaneModeOn = isAirplaneModeOn(),
+            airplaneSummary = null,
             isCommunalAvailable = CommunalPreferenceController.isAvailable(activity),
             isSafetyCenterAvailable = SafetyCenterManagerWrapper.get().isEnabled(activity),
             isEmergencyAvailable = activity.resources.getBoolean(R.bool.config_show_emergency_settings),
@@ -132,14 +156,17 @@ class ComposeHomepageController(private val activity: SettingsHomepageActivity) 
 
     fun onStart() {
         registerUserInfoReceiver()
+        registerAirplaneModeReceiver()
     }
 
     fun onResume() {
         SettingsHomepageComposeInterop.updateUserInfo(getUserName(), getAvatarBitmap())
+        SettingsHomepageComposeInterop.updateAirplaneMode(isAirplaneModeOn(), null)
     }
 
     fun onStop() {
         unregisterUserInfoReceiver()
+        unregisterAirplaneModeReceiver()
     }
 
     private fun launchActivity(pkg: String, cls: String) {
@@ -233,6 +260,40 @@ class ComposeHomepageController(private val activity: SettingsHomepageActivity) 
         userInfoReceiver?.let {
             activity.unregisterReceiver(it)
             userInfoReceiver = null
+        }
+    }
+
+    private fun isAirplaneModeOn(): Boolean =
+        Settings.Global.getInt(
+            activity.contentResolver, Settings.Global.AIRPLANE_MODE_ON, 0
+        ) != 0
+
+    private fun setAirplaneMode(connectivityManager: ConnectivityManager?, enabled: Boolean) {
+        try {
+            connectivityManager?.setAirplaneMode(enabled)
+        } catch (e: Exception) {
+            Log.w(TAG, "Failed to set airplane mode to $enabled", e)
+        }
+    }
+
+    private fun registerAirplaneModeReceiver() {
+        if (airplaneModeReceiver != null) return
+        airplaneModeReceiver = object : BroadcastReceiver() {
+            override fun onReceive(context: Context, intent: Intent) {
+                SettingsHomepageComposeInterop.updateAirplaneMode(isAirplaneModeOn(), null)
+            }
+        }
+        activity.registerReceiver(
+            airplaneModeReceiver,
+            IntentFilter(Intent.ACTION_AIRPLANE_MODE_CHANGED),
+            Context.RECEIVER_NOT_EXPORTED
+        )
+    }
+
+    private fun unregisterAirplaneModeReceiver() {
+        airplaneModeReceiver?.let {
+            activity.unregisterReceiver(it)
+            airplaneModeReceiver = null
         }
     }
 }

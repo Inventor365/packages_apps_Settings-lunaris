@@ -839,3 +839,4 @@ public class SettingsHomepageActivity extends FragmentActivity implements
         }
     }
 }
+

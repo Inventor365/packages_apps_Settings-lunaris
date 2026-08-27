@@ -15,16 +15,8 @@
  */
 package com.android.settings.homepage
 
-import android.content.res.ColorStateList
 import android.graphics.Bitmap
-import android.graphics.Canvas
-import android.graphics.PorterDuff
-import androidx.annotation.DrawableRes
-import androidx.compose.animation.Crossfade
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -35,112 +27,155 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsBottomHeight
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.GridItemSpan
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Accessibility
 import androidx.compose.material.icons.outlined.AccountCircle
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.outlined.Apps
-import androidx.compose.material.icons.outlined.Cloud
-import androidx.compose.material.icons.outlined.BatteryStd
-import androidx.compose.material.icons.outlined.Devices
-import androidx.compose.material.icons.outlined.DoNotDisturb
-import androidx.compose.material.icons.outlined.Emergency
-import androidx.compose.material.icons.outlined.GppGood
-import androidx.compose.material.icons.outlined.HelpOutline
-import androidx.compose.material.icons.outlined.Home
-import androidx.compose.material.icons.outlined.Info
-import androidx.compose.material.icons.outlined.LightMode
-import androidx.compose.material.icons.outlined.LocationOn
-import androidx.compose.material.icons.outlined.Lock
-import androidx.compose.material.icons.outlined.Notifications
-import androidx.compose.material.icons.outlined.PrivacyTip
-import androidx.compose.material.icons.outlined.Search
-import androidx.compose.material.icons.outlined.Settings
-import androidx.compose.material.icons.outlined.Storage
-import androidx.compose.material.icons.outlined.VolumeUp
-import androidx.compose.material.icons.outlined.Wallpaper
-import androidx.compose.material.icons.outlined.SelfImprovement
-import androidx.compose.material.icons.outlined.Wifi
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialShapes
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Switch
-import androidx.compose.material3.SwitchDefaults
-import androidx.compose.material3.Text
-import androidx.compose.material3.toShape
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.ImageBitmap
-import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.toArgb
-import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.android.axion.compose.theme.AxionTheme
 import com.android.settings.R
 import java.util.function.Consumer
 
-private val SEARCH_BAR_HEIGHT = 56.dp
-private val SEARCH_BAR_HORIZONTAL_PADDING = 20.dp
-private val SEARCH_BAR_BOTTOM_PADDING = 20.dp
-private val SEARCH_BAR_SHADOW_ELEVATION = 12.dp
-private val SEARCH_BAR_TONAL_ELEVATION = 6.dp
-private val GRID_TILE_SPACING = 12.dp
-private val CORNER_RADIUS = 24.dp
-private val SEARCH_BAR_RADIUS = 28.dp
-private val GROUP_DIVIDER_START_INSET = 72.dp
+class HomepageEditController {
 
-private const val ICON_BACKGROUND_ALPHA = 0.5f
+    var isEditing: Boolean by mutableStateOf(false)
+        internal set
 
-private val SEARCH_HINTS = listOf(
-    "Are you searching something?",
-    "Click here to search",
-    "Lost? Tap to search",
-    "What are we looking for today?",
-    "Psst… search lives down here",
-)
+    internal var discard: (() -> Unit)? = null
 
-private data class SettingsEntry(
-    val icon: ImageVector?,
-    val title: String,
-    val key: String,
-    val summary: String? = null,
-    @DrawableRes val iconRes: Int? = null,
-)
+    fun discardEdits(): Boolean {
+        if (!isEditing) return false
+        discard?.invoke()
+        return true
+    }
+}
 
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
-private val AvatarShape
-    @Composable get() = MaterialShapes.Cookie4Sided.toShape()
+private sealed class HomepageCell(val key: String, val span: Int) {
+
+    class Chrome(val kind: ChromeKind) : HomepageCell("chrome:${kind.name}", 2)
+
+    class Entry(val item: HomepageItem, val size: TileSize, val wallpaper: Boolean) :
+        HomepageCell(reorderCellKey(item.key), size.span)
+
+    class Group(val entries: List<HomepageItem>, val wallpaper: Boolean) :
+        HomepageCell("card:${entries.first().key}", 2)
+
+    class Break(val layoutKey: String) : HomepageCell(reorderCellKey(layoutKey), 2)
+}
+
+private enum class ChromeKind { HEADER, STYLE_PANEL, TOP_SEARCH, SEARCH_BREAK, HIDDEN_TRAY }
+
+private sealed class ColorTarget {
+
+    object Page : ColorTarget()
+
+    class Entry(val key: String) : ColorTarget()
+}
+
+private sealed class ShapeTarget {
+
+    object Page : ShapeTarget()
+
+    class Entry(val key: String) : ShapeTarget()
+
+    object Avatar : ShapeTarget()
+}
+
+private fun buildCells(
+    layout: HomepageLayout,
+    catalog: HomepageCatalog,
+    editing: Boolean,
+): List<HomepageCell> {
+    val cells = mutableListOf<HomepageCell>()
+    cells += HomepageCell.Chrome(ChromeKind.HEADER)
+    if (layout.searchBar == SearchBarPosition.TOP) {
+        cells += HomepageCell.Chrome(ChromeKind.TOP_SEARCH)
+        if (layout.searchBarBreak) {
+            cells += HomepageCell.Chrome(ChromeKind.SEARCH_BREAK)
+        }
+    }
+    if (editing) {
+        cells += HomepageCell.Chrome(ChromeKind.STYLE_PANEL)
+    }
+
+    val pendingRows = mutableListOf<HomepageItem>()
+    var pendingWallpaper = false
+    fun flushRows() {
+        if (pendingRows.isNotEmpty()) {
+            cells += HomepageCell.Group(pendingRows.toList(), pendingWallpaper)
+            pendingRows.clear()
+        }
+    }
+
+    val seen = mutableSetOf<String>()
+    for (key in layout.order) {
+        if (!seen.add(key)) continue
+        if (layout.isHidden(key)) continue
+        if (isSeparatorKey(key)) {
+            flushRows()
+            if (editing || cells.lastOrNull().isContent()) {
+                cells += HomepageCell.Break(key)
+            }
+            continue
+        }
+        val item = catalog.find(key) ?: continue
+        if (item.kind == ItemKind.SEARCH_BAR && layout.searchBar != SearchBarPosition.INLINE) {
+            continue
+        }
+        val resolved = layout.resolve(item)
+        val size = layout.sizeOf(key, item.defaultSize)
+        val wallpaper = layout.usesWallpaper(key)
+        val mergeable = !editing && size == TileSize.ROW && item.kind != ItemKind.SEARCH_BAR
+        if (mergeable) {
+            if (pendingRows.isNotEmpty() && wallpaper != pendingWallpaper) flushRows()
+            pendingWallpaper = wallpaper
+            pendingRows += resolved
+        } else {
+            flushRows()
+            cells += HomepageCell.Entry(resolved, size, wallpaper)
+        }
+    }
+    flushRows()
+
+    if (editing) {
+        cells += HomepageCell.Chrome(ChromeKind.HIDDEN_TRAY)
+    } else {
+        while (cells.lastOrNull() is HomepageCell.Break) cells.removeAt(cells.lastIndex)
+    }
+    return cells
+}
+
+private fun HomepageCell?.isContent(): Boolean =
+    this is HomepageCell.Entry || this is HomepageCell.Group
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -159,201 +194,94 @@ fun SettingsHomepageScreen(
     isWifiEnabled: Boolean = true,
     wifiSummary: String? = null,
     onWifiToggle: (Boolean) -> Unit = {},
+    isAirplaneModeOn: Boolean = false,
+    airplaneSummary: String? = null,
+    onAirplaneToggle: (Boolean) -> Unit = {},
+    editController: HomepageEditController = remember { HomepageEditController() },
     modifier: Modifier = Modifier,
 ) {
-    val networkTileEntry = SettingsEntry(Icons.Outlined.Wifi, "Network", key = "top_level_network")
-    val connectedDevicesTileEntry = SettingsEntry(Icons.Outlined.Devices, "Connectivity", key = "top_level_connected_devices")
-    val customizeItems = listOf(
-        SettingsEntry(
-            icon = null,
-            iconRes = R.drawable.ic_settings_lunaris_filled,
-            title = "Singularity",
-            key = "top_level_lunaris",
-            summary = stringResource(R.string.lunaris_dashboard_summary),
-        ),
-        SettingsEntry(
-            icon = Icons.Outlined.Wallpaper,
-            title = "Wallpaper & styles",
-            key = "top_level_wallpaper",
-            summary = stringResource(R.string.wallpaper_dashboard_summary),
-        ),
+    val context = LocalContext.current
+    val haptics = LocalHapticFeedback.current
+    val defaultTitle = stringResource(R.string.settings_label)
+
+    val catalog = rememberHomepageCatalog(
+        isCommunalAvailable = isCommunalAvailable,
+        isSafetyCenterAvailable = isSafetyCenterAvailable,
+        isEmergencyAvailable = isEmergencyAvailable,
+        isSupportAvailable = isSupportAvailable,
+        isWellbeingAvailable = isWellbeingAvailable,
+        isGoogleAvailable = isGoogleAvailable,
+        wifiSummary = wifiSummary,
+        airplaneSummary = airplaneSummary,
     )
-    val displayItems = buildList {
-        if (isCommunalAvailable) {
-            add(
-                SettingsEntry(
-                    icon = Icons.Outlined.Home,
-                    title = stringResource(R.string.communal_settings_title),
-                    key = "top_level_communal",
-                    summary = stringResource(R.string.communal_settings_summary),
-                )
-            )
-        }
-        add(
-            SettingsEntry(
-                icon = Icons.Outlined.LightMode,
-                title = stringResource(R.string.display_settings),
-                key = "top_level_display",
-                summary = stringResource(R.string.display_dashboard_summary),
-            )
-        )
-        add(
-            SettingsEntry(
-                icon = Icons.Outlined.VolumeUp,
-                title = stringResource(R.string.sound_settings),
-                key = "top_level_sound",
-                summary = stringResource(R.string.sound_dashboard_summary),
-            )
-        )
-        add(
-            SettingsEntry(
-                icon = Icons.Outlined.Notifications,
-                title = stringResource(R.string.configure_notification_settings),
-                key = "top_level_notifications",
-                summary = stringResource(R.string.notification_dashboard_summary),
-            )
-        )
-        add(
-            SettingsEntry(
-                icon = Icons.Outlined.DoNotDisturb,
-                title = stringResource(R.string.zen_modes_list_title),
-                key = "top_level_priority_modes",
-                summary = "Do Not Disturb, custom modes",
-            )
-        )
+    val defaultOrder = catalog.defaultOrder
+    val defaultLayout = remember(defaultOrder, catalog.defaultHidden) {
+        HomepageLayout(order = defaultOrder, hidden = catalog.defaultHidden)
     }
-    val appsItems = listOf(
-        SettingsEntry(
-            icon = Icons.Outlined.Apps,
-            title = stringResource(R.string.apps_dashboard_title),
-            key = "top_level_apps",
-            summary = stringResource(R.string.app_and_notification_dashboard_summary),
-        ),
-        SettingsEntry(
-            icon = Icons.Outlined.BatteryStd,
-            title = stringResource(R.string.power_usage_summary_title),
-            key = "top_level_battery",
-            summary = "Battery usage, Battery Saver",
-        ),
-        SettingsEntry(
-            icon = Icons.Outlined.Storage,
-            title = stringResource(R.string.storage_settings),
-            key = "top_level_storage",
-            summary = "Used and free space",
-        ),
-    )
-    val securityItems = buildList {
-        add(
-            SettingsEntry(
-                icon = Icons.Outlined.Accessibility,
-                title = stringResource(R.string.accessibility_settings),
-                key = "top_level_accessibility",
-                summary = stringResource(R.string.accessibility_settings_summary),
-            )
-        )
-        if (isSafetyCenterAvailable) {
-            add(
-                SettingsEntry(
-                    icon = Icons.Outlined.GppGood,
-                    title = stringResource(R.string.safety_center_title),
-                    key = "top_level_safety_center",
-                    summary = stringResource(R.string.safety_center_summary),
-                )
-            )
-        } else {
-            add(
-                SettingsEntry(
-                    icon = Icons.Outlined.Lock,
-                    title = stringResource(R.string.security_settings_title),
-                    key = "top_level_security",
-                    summary = stringResource(R.string.security_dashboard_summary),
-                )
-            )
-            add(
-                SettingsEntry(
-                    icon = Icons.Outlined.PrivacyTip,
-                    title = stringResource(R.string.privacy_dashboard_title),
-                    key = "top_level_privacy",
-                    summary = stringResource(R.string.privacy_dashboard_summary),
-                )
-            )
-        }
-        add(
-            SettingsEntry(
-                icon = Icons.Outlined.LocationOn,
-                title = stringResource(R.string.location_settings_title),
-                key = "top_level_location",
-                summary = "App access to location",
-            )
-        )
-        if (isEmergencyAvailable) {
-            add(
-                SettingsEntry(
-                    icon = Icons.Outlined.Emergency,
-                    title = stringResource(R.string.emergency_settings_preference_title),
-                    key = "top_level_emergency",
-                    summary = stringResource(R.string.emergency_dashboard_summary),
-                )
-            )
-        }
-        add(
-            SettingsEntry(
-                icon = Icons.Outlined.AccountCircle,
-                title = stringResource(R.string.account_dashboard_title_with_passkeys),
-                key = "top_level_accounts",
-                summary = "Accounts, passkeys, sync",
-            )
-        )
-        if (isWellbeingAvailable) {
-            add(
-                SettingsEntry(
-                    icon = Icons.Outlined.SelfImprovement,
-                    title = stringResource(R.string.wellbeing_title),
-                    key = "top_level_wellbeing",
-                    summary = "Screen time, app timers",
-                )
-            )
+    val store = remember(context) { HomepageLayoutStore(context) }
+
+    var layout by remember(store, defaultLayout) { mutableStateOf(store.load(defaultLayout)) }
+    var snapshot by remember { mutableStateOf<HomepageLayout?>(null) }
+    var optionsKey by remember { mutableStateOf<String?>(null) }
+    var colorTarget by remember { mutableStateOf<ColorTarget?>(null) }
+    var shapeTarget by remember { mutableStateOf<ShapeTarget?>(null) }
+    var confirmingReset by remember { mutableStateOf(false) }
+
+    val editing = snapshot != null
+    val style = layout.tileStyle()
+    val searchHint = remember { SEARCH_HINTS.random() }
+    val wallpaperBackdrop = rememberWallpaperBackdrop(layout.wallpaperCards.isNotEmpty())
+
+    val checkedOf: (HomepageItem) -> Boolean = { item ->
+        when (item.key) {
+            KEY_WIFI_TOGGLE -> isWifiEnabled
+            KEY_AIRPLANE_TOGGLE -> isAirplaneModeOn
+            else -> false
         }
     }
-    val generalItems = buildList {
-        add(
-            SettingsEntry(
-                icon = Icons.Outlined.Settings,
-                title = stringResource(R.string.header_category_system),
-                key = "top_level_system",
-                summary = stringResource(R.string.system_dashboard_summary),
-            )
-        )
-        if (isSupportAvailable) {
-            add(
-                SettingsEntry(
-                    icon = Icons.Outlined.HelpOutline,
-                    title = stringResource(R.string.page_tab_title_support),
-                    key = "top_level_support",
-                    summary = stringResource(R.string.support_summary),
-                )
-            )
+    val onToggle: (HomepageItem, Boolean) -> Unit = { item, enabled ->
+        when (item.key) {
+            KEY_WIFI_TOGGLE -> onWifiToggle(enabled)
+            KEY_AIRPLANE_TOGGLE -> onAirplaneToggle(enabled)
         }
-        add(
-            SettingsEntry(
-                icon = Icons.Outlined.Info,
-                title = stringResource(R.string.about_settings),
-                key = "top_level_about_device",
-                summary = "Model, Android version, legal info",
-            )
-        )
     }
 
-    val groups = listOf(
-        customizeItems,
-        displayItems,
-        appsItems,
-        securityItems,
-        generalItems,
-    )
+    val leaveEditMode: () -> Unit = {
+        optionsKey = null
+        colorTarget = null
+        shapeTarget = null
+        confirmingReset = false
+        snapshot = null
+    }
+    val enterEditMode: () -> Unit = { snapshot = layout }
+    val discardEdits: () -> Unit = {
+        snapshot?.let { layout = it }
+        leaveEditMode()
+    }
+    val saveEdits: () -> Unit = {
+        store.save(layout)
+        leaveEditMode()
+    }
 
-    val listState = rememberLazyListState()
+    SideEffect {
+        editController.isEditing = editing
+        editController.discard = discardEdits
+    }
+    DisposableEffect(editController) {
+        onDispose {
+            editController.discard = null
+            editController.isEditing = false
+        }
+    }
+
+    val gridState = rememberLazyGridState()
+    val reorderState = rememberGridReorderState(gridState) { from, to ->
+        layout = layout.move(from, to)
+    }
+
+    val cells = buildCells(layout, catalog, editing)
     val statusBarPadding = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
+    val navBarPadding = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
 
     AxionTheme {
         Surface(
@@ -361,438 +289,380 @@ fun SettingsHomepageScreen(
             color = MaterialTheme.colorScheme.surfaceContainer,
         ) {
             Box(modifier = Modifier.fillMaxSize()) {
-                LazyColumn(
-                    state = listState,
-                    modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(
-                        top = statusBarPadding,
-                        bottom = SEARCH_BAR_HEIGHT + SEARCH_BAR_BOTTOM_PADDING * 2 + 24.dp,
-                    ),
-                ) {
-                    item {
-                        HomepageHeader(
-                            avatarBitmap = avatarBitmap,
-                            onAvatarClick = onAvatarClick,
-                        )
-                    }
-
-                item { Spacer(Modifier.height(24.dp)) }
-
-                    if (isGoogleAvailable) {
-                        item {
-                            GoogleAccountCard(
-                                modifier = Modifier.padding(horizontal = 12.dp),
-                                onClick = { onPreferenceClick("top_level_google") },
-                            )
-                        }
-                        item { Spacer(Modifier.height(24.dp)) }
-                    }
-
-                item {
-                        Column(
-                            modifier = Modifier.padding(horizontal = 12.dp),
-                            verticalArrangement = Arrangement.spacedBy(GRID_TILE_SPACING),
-                        ) {
-                            Row(
-                                horizontalArrangement = Arrangement.spacedBy(GRID_TILE_SPACING),
-                            ) {
-                                NavigationQuickTile(
-                                    modifier = Modifier.weight(1f),
-                                    icon = connectedDevicesTileEntry.icon,
-                                    title = connectedDevicesTileEntry.title,
-                                    subtitle = "Bluetooth, pairing",
-                                    onClick = { onPreferenceClick(connectedDevicesTileEntry.key) },
-                                )
-                                NavigationQuickTile(
-                                    modifier = Modifier.weight(1f),
-                                    icon = networkTileEntry.icon,
-                                    title = networkTileEntry.title,
-                                    subtitle = "Network & connectivity",
-                                    onClick = { onPreferenceClick(networkTileEntry.key) },
-                                )
+                LazyVerticalGrid(
+                    columns = GridCells.Fixed(2),
+                    state = gridState,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .then(
+                            if (editing) {
+                                Modifier.homepageDragContainer(reorderState) {
+                                    haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                                }
+                            } else {
+                                Modifier
                             }
-                            ToggleLongTile(
-                                icon = Icons.Outlined.Wifi,
-                                title = "Wi-Fi",
-                                subtitle = wifiSummary,
-                                checked = isWifiEnabled,
-                                onCheckedChange = onWifiToggle,
-                                onClick = { onPreferenceClick(networkTileEntry.key) },
-                            )
-                        }
-                    }
+                        ),
+                    contentPadding = PaddingValues(
+                        start = 12.dp,
+                        end = 12.dp,
+                        top = statusBarPadding,
+                        bottom = SEARCH_BAR_HEIGHT + SEARCH_BAR_BOTTOM_PADDING * 2 +
+                            navBarPadding + 8.dp,
+                    ),
+                    horizontalArrangement = Arrangement.spacedBy(GRID_TILE_SPACING),
+                    verticalArrangement = Arrangement.spacedBy(GRID_TILE_SPACING),
+                ) {
+                    cells.forEach { cell ->
+                        item(key = cell.key, span = { GridItemSpan(cell.span) }) {
+                            val dragged = reorderState.draggingKey == cell.key
+                            val cellModifier = when {
+                                dragged -> Modifier.draggingItem(reorderState, cell.key)
+                                editing -> Modifier.animateItem()
+                                else -> Modifier
+                            }
+                            when (cell) {
+                                is HomepageCell.Chrome -> ChromeContent(
+                                    kind = cell.kind,
+                                    layout = layout,
+                                    catalog = catalog,
+                                    defaultTitle = defaultTitle,
+                                    userName = userName,
+                                    avatarBitmap = avatarBitmap,
+                                    searchHint = searchHint,
+                                    editing = editing,
+                                    onAvatarClick = onAvatarClick,
+                                    onSearchClick = onSearchClick,
+                                    onLayout = { layout = it },
+                                    onPickIconColor = { colorTarget = ColorTarget.Page },
+                                    onPickIconShape = { shapeTarget = ShapeTarget.Page },
+                                    onPickAvatarShape = { shapeTarget = ShapeTarget.Avatar },
+                                    onAddBreak = { layout = layout.appendSeparator() },
+                                    onResetAll = { confirmingReset = true },
+                                    modifier = cellModifier,
+                                )
 
-                    item { Spacer(Modifier.height(24.dp)) }
+                                is HomepageCell.Group -> HomepageCard(
+                                    entries = cell.entries,
+                                    style = style,
+                                    onEntryClick = { onPreferenceClick(it.navKey) },
+                                    checkedOf = checkedOf,
+                                    onToggle = onToggle,
+                                    searchHint = searchHint,
+                                    modifier = cellModifier,
+                                    backdrop = wallpaperBackdrop.takeIf { cell.wallpaper },
+                                )
 
-                groups.forEachIndexed { groupIndex, entries ->
-                        item {
-                            HomepageGroupCard(
-                                modifier = Modifier.padding(horizontal = 12.dp),
-                                entries = entries,
-                                onEntryClick = onPreferenceClick,
-                            )
-                        }
-                        if (groupIndex < groups.lastIndex) {
-                            item { Spacer(Modifier.height(24.dp)) }
+                                is HomepageCell.Break -> CardBreakCell(
+                                    editing = editing,
+                                    onDelete = { layout = layout.removeEntry(cell.layoutKey) },
+                                    modifier = cellModifier,
+                                )
+
+                                is HomepageCell.Entry -> Box(modifier = cellModifier) {
+                                    val backdrop = wallpaperBackdrop.takeIf { cell.wallpaper }
+                                    if (cell.item.kind == ItemKind.SEARCH_BAR) {
+                                        InlineSearchBarTile(
+                                            size = cell.size,
+                                            hint = searchHint,
+                                            onClick = onSearchClick,
+                                            clickable = !editing,
+                                            backdrop = backdrop,
+                                        )
+                                    } else {
+                                        HomepageTile(
+                                            item = cell.item,
+                                            size = cell.size,
+                                            style = style,
+                                            onClick = { onPreferenceClick(cell.item.navKey) },
+                                            clickable = !editing,
+                                            checked = checkedOf(cell.item),
+                                            onCheckedChange = { onToggle(cell.item, it) },
+                                            searchHint = searchHint,
+                                            backdrop = backdrop,
+                                        )
+                                    }
+                                    if (editing) {
+                                        TileEditControls(
+                                            size = cell.size,
+                                            reorderState = reorderState,
+                                            onOpenOptions = { optionsKey = cell.item.key },
+                                            onResize = {
+                                                layout = layout.withSize(cell.item.key, it)
+                                            },
+                                        )
+                                    }
+                                }
+                            }
                         }
                     }
                 }
-                FloatingSearchBar(
-                    onClick = onSearchClick,
+
+                BottomChrome(
+                    editing = editing,
+                    searchBar = layout.searchBar,
+                    dirty = editing && snapshot != layout,
+                    searchHint = searchHint,
+                    onSearchClick = onSearchClick,
+                    onEnterEditMode = enterEditMode,
+                    onDiscard = discardEdits,
+                    onReset = { confirmingReset = true },
+                    onSave = saveEdits,
                     modifier = Modifier.align(Alignment.BottomCenter),
                 )
             }
         }
-    }
-}
 
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
-@Composable
-private fun HomepageHeader(
-    avatarBitmap: Bitmap?,
-    onAvatarClick: () -> Unit,
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(start = 24.dp, end = 24.dp, top = 74.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text(
-            text = stringResource(R.string.settings_label),
-            style = MaterialTheme.typography.displayMediumEmphasized,
-            color = MaterialTheme.colorScheme.onSurface,
-        )
-
-        Box(
-            modifier = Modifier
-                .size(52.dp)
-                .clip(AvatarShape)
-                .background(MaterialTheme.colorScheme.surfaceBright)
-                .clickable(onClick = onAvatarClick),
-            contentAlignment = Alignment.Center,
-        ) {
-            if (avatarBitmap != null) {
-                Image(
-                    bitmap = avatarBitmap.asImageBitmap(),
-                    contentDescription = null,
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier.fillMaxSize(),
-                )
-            } else {
-                Icon(
-                    imageVector = Icons.Outlined.AccountCircle,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurface,
-                    modifier = Modifier.size(26.dp),
-                )
-            }
-        }
-    }
-}
-
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
-@Composable
-private fun GoogleAccountCard(
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    Surface(
-        modifier = modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(CORNER_RADIUS))
-            .clickable(onClick = onClick),
-        shape = RoundedCornerShape(CORNER_RADIUS),
-        color = MaterialTheme.colorScheme.surfaceBright,
-    ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 20.dp, vertical = 16.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(40.dp)
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.surfaceContainerHighest),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    painter = painterResource(id = R.drawable.ic_google),
-                    contentDescription = null,
-                    tint = Color.Unspecified,
-                    modifier = Modifier.size(30.dp),
-                )
-            }
-            Spacer(Modifier.width(16.dp))
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = "Google",
-                    style = MaterialTheme.typography.titleMediumEmphasized,
-                    color = MaterialTheme.colorScheme.onSurface,
-                )
-                Text(
-                    text = "Google services and preferences",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-            Icon(
-                imageVector = Icons.AutoMirrored.Outlined.KeyboardArrowRight,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-    }
-}
-
-@Composable
-private fun rememberDrawableBitmap(@DrawableRes resId: Int, size: Dp, tint: Color): ImageBitmap? {
-    val context = LocalContext.current
-    val sizePx = with(LocalDensity.current) { size.roundToPx() }
-    val tintArgb = tint.toArgb()
-    return remember(context, resId, sizePx, tintArgb) {
-        if (sizePx <= 0) return@remember null
-        val drawable = context.getDrawable(resId)?.mutate() ?: return@remember null
-        drawable.alpha = 255
-        drawable.setTintList(ColorStateList.valueOf(tintArgb))
-        drawable.setTintMode(PorterDuff.Mode.SRC_IN)
-        val bitmap = Bitmap.createBitmap(sizePx, sizePx, Bitmap.Config.ARGB_8888)
-        drawable.setBounds(0, 0, sizePx, sizePx)
-        drawable.draw(Canvas(bitmap))
-        bitmap.asImageBitmap()
-    }
-}
-
-@Composable
-private fun AccentIcon(
-    icon: ImageVector?,
-    @DrawableRes iconRes: Int? = null,
-    size: Dp = 40.dp,
-    glyphSize: Dp = 22.dp,
-) {
-    Box(
-        modifier = Modifier
-            .size(size)
-            .clip(CircleShape)
-            .background(MaterialTheme.colorScheme.primary.copy(alpha = ICON_BACKGROUND_ALPHA)),
-        contentAlignment = Alignment.Center,
-    ) {
-        val tint = MaterialTheme.colorScheme.onSurface
-        val iconBitmap =
-            if (iconRes != null) rememberDrawableBitmap(iconRes, glyphSize, tint) else null
-        if (iconBitmap != null) {
-            Icon(
-                bitmap = iconBitmap,
-                contentDescription = null,
-                tint = tint,
-                modifier = Modifier.size(glyphSize),
-            )
-        } else if (icon != null) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = tint,
-                modifier = Modifier.size(glyphSize),
-            )
-        }
-    }
-}
-
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
-@Composable
-private fun ToggleLongTile(
-    icon: ImageVector,
-    title: String,
-    subtitle: String?,
-    checked: Boolean,
-    onCheckedChange: (Boolean) -> Unit,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    Surface(
-        modifier = modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(CORNER_RADIUS))
-            .clickable(onClick = onClick),
-        shape = RoundedCornerShape(CORNER_RADIUS),
-        color = MaterialTheme.colorScheme.surfaceBright,
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            AccentIcon(icon = icon, size = 40.dp, glyphSize = 22.dp)
-            Spacer(Modifier.width(16.dp))
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.titleMediumEmphasized,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                if (subtitle != null) {
-                    Text(
-                        text = subtitle,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.primary,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                }
-            }
-            Spacer(Modifier.width(12.dp))
-            Switch(
-                checked = checked,
-                onCheckedChange = onCheckedChange,
-                thumbContent = {
-                    Crossfade(targetState = checked, label = "wifi_switch_icon") { isChecked ->
-                        Icon(
-                            imageVector = if (isChecked) Icons.Filled.Check else Icons.Filled.Close,
-                            contentDescription = null,
-                            modifier = Modifier.size(16.dp),
-                        )
-                    }
+        val optionsItem = optionsKey?.let { catalog.find(it) }
+        if (optionsItem != null) {
+            val key = optionsItem.key
+            TileOptionsSheet(
+                item = optionsItem,
+                size = layout.sizeOf(key, optionsItem.defaultSize),
+                title = layout.titleDraft(key, optionsItem.title),
+                summary = layout.summaryDraft(key, optionsItem.summary),
+                hidden = layout.isHidden(key),
+                hasSizeOverride = key in layout.sizes,
+                hasLabelOverride = layout.hasLabelOverride(key),
+                themedIcon = layout.isThemedIcon(key),
+                wallpaperBackground = layout.usesWallpaper(key),
+                iconColor = layout.iconColorOf(key)?.let { Color(it) }
+                    ?: MaterialTheme.colorScheme.primary,
+                hasIconColorOverride = layout.hasIconColorOverride(key),
+                inheritedColorLabel = layout.inheritedColorLabel(),
+                iconShape = layout.iconShapeOf(key),
+                hasIconShapeOverride = layout.hasIconShapeOverride(key),
+                iconPosition = layout.iconPositionOf(key),
+                hasIconPositionOverride = layout.hasIconPositionOverride(key),
+                iconStyle = layout.iconStyle,
+                onTitle = { layout = layout.withTitle(key, it) },
+                onSummary = { layout = layout.withSummary(key, it) },
+                onResetLabel = { layout = layout.resetLabel(key) },
+                onSize = { layout = layout.withSize(key, it) },
+                onResetSize = {
+                    layout = layout.resetSize(key)
+                    optionsKey = null
                 },
-                colors = SwitchDefaults.colors(
-                    checkedThumbColor = MaterialTheme.colorScheme.primary,
-                    checkedTrackColor = MaterialTheme.colorScheme.primaryContainer,
-                    checkedIconColor = MaterialTheme.colorScheme.onPrimary,
-                    uncheckedThumbColor = MaterialTheme.colorScheme.outline,
-                    uncheckedTrackColor = MaterialTheme.colorScheme.surfaceVariant,
-                    uncheckedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                ),
+                onHidden = {
+                    layout = layout.setHidden(key, it)
+                    optionsKey = null
+                },
+                onThemedIcon = {
+                    layout = layout.setThemedIcon(key, it)
+                    optionsKey = null
+                },
+                onWallpaperBackground = {
+                    layout = layout.setWallpaperCard(key, it)
+                    optionsKey = null
+                },
+                onPickIconColor = {
+                    optionsKey = null
+                    colorTarget = ColorTarget.Entry(key)
+                },
+                onResetIconColor = { layout = layout.resetIconColor(key) },
+                onPickIconShape = {
+                    optionsKey = null
+                    shapeTarget = ShapeTarget.Entry(key)
+                },
+                onResetIconShape = { layout = layout.resetIconShape(key) },
+                onIconPosition = { layout = layout.withIconPosition(key, it) },
+                onResetIconPosition = { layout = layout.resetIconPosition(key) },
+                onMoveToTop = {
+                    layout = layout.moveToTop(key)
+                    optionsKey = null
+                },
+                onAddBreakAfter = {
+                    layout = layout.insertSeparatorAfter(key)
+                    optionsKey = null
+                },
+                onDismiss = { optionsKey = null },
             )
         }
-    }
-}
 
-/** Compact half-width navigation tile: accent icon, label, summary, chevron. */
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
-@Composable
-private fun NavigationQuickTile(
-    icon: ImageVector?,
-    title: String,
-    subtitle: String,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    Surface(
-        modifier = modifier
-            .clip(RoundedCornerShape(CORNER_RADIUS))
-            .clickable(onClick = onClick),
-        shape = RoundedCornerShape(CORNER_RADIUS),
-        color = MaterialTheme.colorScheme.surfaceBright,
-    ) {
-        Row(
-            modifier = Modifier.padding(start = 12.dp, end = 8.dp, top = 18.dp, bottom = 18.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            AccentIcon(icon = icon, size = 40.dp, glyphSize = 22.dp)
-            Spacer(Modifier.width(10.dp))
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.titleMediumEmphasized,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                Text(
-                    text = subtitle,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            }
-            Icon(
-                imageVector = Icons.AutoMirrored.Outlined.KeyboardArrowRight,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.size(18.dp),
+        val colorEntry = (colorTarget as? ColorTarget.Entry)?.let { catalog.find(it.key) }
+        when {
+            colorTarget is ColorTarget.Page -> ColorPickerSheet(
+                title = "All tile icons",
+                initial = layout.iconColor?.let { Color(it) },
+                themeColor = MaterialTheme.colorScheme.primary,
+                onPick = { layout = layout.withIconColor(it.toArgb()) },
+                onReset = {
+                    layout = layout.resetIconColor()
+                    colorTarget = null
+                },
+                onDismiss = { colorTarget = null },
             )
-        }
-    }
-}
 
-@Composable
-private fun HomepageGroupCard(
-    entries: List<SettingsEntry>,
-    onEntryClick: (String) -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    Surface(
-        modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(CORNER_RADIUS),
-        color = MaterialTheme.colorScheme.surfaceBright,
-    ) {
-        Column(modifier = Modifier.padding(vertical = 4.dp)) {
-            entries.forEachIndexed { index, entry ->
-                HomepageEntryRow(
-                    entry = entry,
-                    onClick = { onEntryClick(entry.key) },
-                )
-                if (index < entries.lastIndex) {
-                    HorizontalDivider(
-                        modifier = Modifier.padding(start = GROUP_DIVIDER_START_INSET, end = 16.dp),
-                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f),
+            colorEntry != null -> {
+                val key = colorEntry.key
+                key(key) {
+                    ColorPickerSheet(
+                        title = layout.titleOf(key, colorEntry.title),
+                        initial = layout.iconColors[key]?.let { Color(it) },
+                        themeColor = layout.iconColor?.let { Color(it) }
+                            ?: MaterialTheme.colorScheme.primary,
+                        onPick = { layout = layout.withIconColor(key, it.toArgb()) },
+                        onReset = {
+                            layout = layout.resetIconColor(key)
+                            colorTarget = null
+                        },
+                        onDismiss = { colorTarget = null },
+                        followLabel = layout.inheritedColorLabel(),
                     )
                 }
             }
         }
-    }
-}
 
-/** Preference row used inside every homepage group. */
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
-@Composable
-private fun HomepageEntryRow(
-    entry: SettingsEntry,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 12.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        AccentIcon(icon = entry.icon, iconRes = entry.iconRes, size = 40.dp, glyphSize = 22.dp)
-        Spacer(Modifier.width(16.dp))
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = entry.title,
-                style = MaterialTheme.typography.titleMediumEmphasized,
-                color = MaterialTheme.colorScheme.onSurface,
+        val shapeEntry = (shapeTarget as? ShapeTarget.Entry)?.let { catalog.find(it.key) }
+        when {
+            shapeTarget is ShapeTarget.Page -> ShapePickerDialog(
+                title = "All tile icons",
+                selected = layout.iconShape,
+                iconStyle = layout.iconStyle,
+                iconColor = layout.iconColor?.let { Color(it) },
+                onPick = { layout = layout.withIconShape(it) },
+                onReset = {
+                    layout = layout.resetIconShape()
+                    shapeTarget = null
+                },
+                onDismiss = { shapeTarget = null },
             )
-            if (entry.summary != null) {
-                Text(
-                    text = entry.summary,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
+
+            shapeTarget is ShapeTarget.Avatar -> ShapePickerDialog(
+                title = "Avatar",
+                selected = layout.header.avatarShape,
+                previewIcon = Icons.Outlined.AccountCircle,
+                iconStyle = IconStyle.FILLED,
+                iconColor = MaterialTheme.colorScheme.surfaceBright,
+                onPick = {
+                    layout = layout.copy(header = layout.header.copy(avatarShape = it))
+                },
+                onReset = {
+                    layout = layout.copy(
+                        header = layout.header.copy(avatarShape = HeaderConfig().avatarShape),
+                    )
+                    shapeTarget = null
+                },
+                onDismiss = { shapeTarget = null },
+            )
+
+            shapeEntry != null -> {
+                val key = shapeEntry.key
+                val resolved = layout.resolve(shapeEntry)
+                ShapePickerDialog(
+                    title = resolved.title,
+                    selected = layout.iconShapeOf(key),
+                    previewIcon = resolved.icon,
+                    previewIconRes = resolved.iconRes,
+                    previewTinted = resolved.tintIcon,
+                    iconStyle = layout.iconStyle,
+                    iconColor = resolved.iconColor ?: layout.iconColor?.let { Color(it) },
+                    onPick = { layout = layout.withIconShape(key, it) },
+                    onReset = if (layout.hasIconShapeOverride(key)) {
+                        {
+                            layout = layout.resetIconShape(key)
+                            shapeTarget = null
+                        }
+                    } else {
+                        null
+                    },
+                    onDismiss = { shapeTarget = null },
+                    followLabel = "all tile icons",
                 )
             }
         }
-        Spacer(Modifier.width(8.dp))
-        Icon(
-            imageVector = Icons.AutoMirrored.Outlined.KeyboardArrowRight,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.size(24.dp),
+
+        if (confirmingReset) {
+            ResetConfirmDialog(
+                onConfirm = {
+                    layout = defaultLayout
+                    confirmingReset = false
+                },
+                onDismiss = { confirmingReset = false },
+            )
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+private fun ChromeContent(
+    kind: ChromeKind,
+    layout: HomepageLayout,
+    catalog: HomepageCatalog,
+    defaultTitle: String,
+    userName: String?,
+    avatarBitmap: Bitmap?,
+    searchHint: String,
+    editing: Boolean,
+    onAvatarClick: () -> Unit,
+    onSearchClick: () -> Unit,
+    onLayout: (HomepageLayout) -> Unit,
+    onPickIconColor: () -> Unit,
+    onPickIconShape: () -> Unit,
+    onPickAvatarShape: () -> Unit,
+    onAddBreak: () -> Unit,
+    onResetAll: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    when (kind) {
+        ChromeKind.HEADER -> HomepageHeader(
+            config = layout.header,
+            title = layout.header.customTitle ?: defaultTitle,
+            greeting = userName?.takeIf { layout.header.showGreeting }?.let { "Hi, $it" },
+            avatarBitmap = avatarBitmap,
+            onAvatarClick = { if (!editing) onAvatarClick() },
+            modifier = modifier,
+        )
+
+        ChromeKind.STYLE_PANEL -> AppearancePanel(
+            layout = layout,
+            defaultTitle = defaultTitle,
+            onLayout = onLayout,
+            onPickIconColor = onPickIconColor,
+            onPickIconShape = onPickIconShape,
+            onPickAvatarShape = onPickAvatarShape,
+            onAddBreak = onAddBreak,
+            onResetAll = onResetAll,
+            modifier = modifier,
+        )
+
+        ChromeKind.TOP_SEARCH -> PinnedSearchBar(
+            hint = searchHint,
+            onClick = { if (!editing) onSearchClick() },
+            modifier = modifier.fillMaxWidth(),
+            elevated = false,
+        )
+
+        ChromeKind.SEARCH_BREAK -> CardBreakCell(
+            editing = editing,
+            onDelete = { onLayout(layout.copy(searchBarBreak = false)) },
+            modifier = modifier,
+            label = "Below search bar",
+        )
+
+        ChromeKind.HIDDEN_TRAY -> HiddenTray(
+            items = layout.hiddenOrder().mapNotNull { key ->
+                catalog.find(key)?.let { layout.resolve(it) }
+            },
+            corner = layout.cornerStyle.radius,
+            onRestore = { onLayout(layout.setHidden(it, false)) },
+            modifier = modifier,
         )
     }
 }
 
 @Composable
-private fun FloatingSearchBar(
-    onClick: () -> Unit,
+private fun BottomChrome(
+    editing: Boolean,
+    searchBar: SearchBarPosition,
+    dirty: Boolean,
+    searchHint: String,
+    onSearchClick: () -> Unit,
+    onEnterEditMode: () -> Unit,
+    onDiscard: () -> Unit,
+    onReset: () -> Unit,
+    onSave: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -804,39 +674,38 @@ private fun FloatingSearchBar(
                 )
             )
     ) {
-        Surface(
+        Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = SEARCH_BAR_HORIZONTAL_PADDING, vertical = SEARCH_BAR_BOTTOM_PADDING)
-                .height(SEARCH_BAR_HEIGHT)
-                .clip(RoundedCornerShape(SEARCH_BAR_RADIUS))
-                .clickable(onClick = onClick),
-            shape = RoundedCornerShape(SEARCH_BAR_RADIUS),
-            color = MaterialTheme.colorScheme.surfaceBright,
-            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.7f)),
-            shadowElevation = SEARCH_BAR_SHADOW_ELEVATION,
-            tonalElevation = SEARCH_BAR_TONAL_ELEVATION,
+                .padding(
+                    horizontal = SEARCH_BAR_HORIZONTAL_PADDING,
+                    vertical = SEARCH_BAR_BOTTOM_PADDING,
+                ),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(horizontal = 20.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Icon(
-                    imageVector = Icons.Outlined.Search,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(24.dp),
+            when {
+                editing -> EditActionBar(
+                    dirty = dirty,
+                    onCancel = onDiscard,
+                    onReset = onReset,
+                    onSave = onSave,
+                    modifier = Modifier.weight(1f),
                 )
-                Spacer(modifier = Modifier.width(16.dp))
-                Text(
-                    text = remember { SEARCH_HINTS.random() },
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    style = MaterialTheme.typography.bodyLarge,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
+
+                searchBar == SearchBarPosition.BOTTOM -> {
+                    PinnedSearchBar(
+                        hint = searchHint,
+                        onClick = onSearchClick,
+                        modifier = Modifier.weight(1f),
+                    )
+                    Spacer(Modifier.width(10.dp))
+                    EditModeButton(onClick = onEnterEditMode)
+                }
+
+                else -> {
+                    Spacer(Modifier.weight(1f))
+                    EditModeButton(onClick = onEnterEditMode)
+                }
             }
         }
         Spacer(modifier = Modifier.windowInsetsBottomHeight(WindowInsets.navigationBars))
@@ -848,6 +717,9 @@ object SettingsHomepageComposeInterop {
     private var avatarBitmapState: MutableState<Bitmap?>? = null
     private var wifiEnabledState: MutableState<Boolean>? = null
     private var wifiSummaryState: MutableState<String?>? = null
+    private var airplaneModeState: MutableState<Boolean>? = null
+    private var airplaneSummaryState: MutableState<String?>? = null
+    private var editController: HomepageEditController? = null
 
     @JvmStatic
     fun setContent(
@@ -856,10 +728,14 @@ object SettingsHomepageComposeInterop {
         onAvatarClick: Runnable,
         onPreferenceClick: Consumer<String>,
         onWifiToggle: Consumer<Boolean>,
+        onAirplaneToggle: Consumer<Boolean>,
+        onEditModeChanged: Consumer<Boolean>,
         userName: String?,
         avatarBitmap: Bitmap?,
         isWifiEnabled: Boolean,
         wifiSummary: String?,
+        isAirplaneModeOn: Boolean,
+        airplaneSummary: String?,
         isCommunalAvailable: Boolean,
         isSafetyCenterAvailable: Boolean,
         isEmergencyAvailable: Boolean,
@@ -867,15 +743,27 @@ object SettingsHomepageComposeInterop {
         isWellbeingAvailable: Boolean,
         isGoogleAvailable: Boolean,
     ) {
+        val controller = HomepageEditController()
+        editController = controller
         view.setContent {
             val userNameMutableState = remember { mutableStateOf(userName) }
             val avatarBitmapMutableState = remember { mutableStateOf(avatarBitmap) }
             val wifiEnabledMutableState = remember { mutableStateOf(isWifiEnabled) }
             val wifiSummaryMutableState = remember { mutableStateOf(wifiSummary) }
+            val airplaneModeMutableState = remember { mutableStateOf(isAirplaneModeOn) }
+            val airplaneSummaryMutableState = remember { mutableStateOf(airplaneSummary) }
             userNameState = userNameMutableState
             avatarBitmapState = avatarBitmapMutableState
             wifiEnabledState = wifiEnabledMutableState
             wifiSummaryState = wifiSummaryMutableState
+            airplaneModeState = airplaneModeMutableState
+            airplaneSummaryState = airplaneSummaryMutableState
+
+            val isEditing = controller.isEditing
+            DisposableEffect(isEditing) {
+                onEditModeChanged.accept(isEditing)
+                onDispose { }
+            }
 
             AxionTheme {
                 SettingsHomepageScreen(
@@ -890,12 +778,19 @@ object SettingsHomepageComposeInterop {
                         wifiEnabledMutableState.value = enabled
                         onWifiToggle.accept(enabled)
                     },
+                    isAirplaneModeOn = airplaneModeMutableState.value,
+                    airplaneSummary = airplaneSummaryMutableState.value,
+                    onAirplaneToggle = { enabled ->
+                        airplaneModeMutableState.value = enabled
+                        onAirplaneToggle.accept(enabled)
+                    },
                     isCommunalAvailable = isCommunalAvailable,
                     isSafetyCenterAvailable = isSafetyCenterAvailable,
                     isEmergencyAvailable = isEmergencyAvailable,
                     isSupportAvailable = isSupportAvailable,
                     isWellbeingAvailable = isWellbeingAvailable,
                     isGoogleAvailable = isGoogleAvailable,
+                    editController = controller,
                 )
             }
         }
@@ -912,4 +807,13 @@ object SettingsHomepageComposeInterop {
         wifiEnabledState?.value = isWifiEnabled
         wifiSummaryState?.value = wifiSummary
     }
+
+    @JvmStatic
+    fun updateAirplaneMode(isAirplaneModeOn: Boolean, airplaneSummary: String?) {
+        airplaneModeState?.value = isAirplaneModeOn
+        airplaneSummaryState?.value = airplaneSummary
+    }
+
+    @JvmStatic
+    fun exitEditMode(): Boolean = editController?.discardEdits() ?: false
 }
