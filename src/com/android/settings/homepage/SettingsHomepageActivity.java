@@ -122,7 +122,7 @@ public class SettingsHomepageActivity extends FragmentActivity implements
     private boolean mAllowUpdateSuggestion = true;
 
     private ComposeHomepageController mComposeController;
-    private final boolean mUseComposeHomepage = ComposeHomepageController.isComposeHomepageEnabled();
+    private boolean mUseComposeHomepage;
 
     /** A listener receiving homepage loaded events. */
     public interface HomepageLoadedListener {
@@ -195,6 +195,8 @@ public class SettingsHomepageActivity extends FragmentActivity implements
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        mUseComposeHomepage = ComposeHomepageController.isComposeHomepageEnabled(this);
 
         if (SettingsThemeHelper.isExpressiveTheme(this)) {
             setTheme(R.style.Theme_Settings_Home_Expressive);

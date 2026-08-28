@@ -54,7 +54,10 @@ class ComposeHomepageController(private val activity: SettingsHomepageActivity) 
         private const val GOOGLE_ACTIVITY = "com.google.android.gms.app.settings.GoogleSettingsIALink"
 
         @JvmStatic
-        fun isComposeHomepageEnabled(): Boolean = true
+        fun isComposeHomepageEnabled(context: Context): Boolean =
+            Settings.System.getInt(context.contentResolver, 
+                "compose_homepage_enabled", 1
+            ) == 1
     }
 
     private var userInfoReceiver: BroadcastReceiver? = null
