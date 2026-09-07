@@ -96,16 +96,35 @@ private val DEFAULT_AVATAR_SHAPE = HeaderConfig().avatarShape
 internal fun EditModeButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    glass: HomepageGlassBackdrop? = null,
 ) {
     Surface(
         modifier = modifier
             .size(SEARCH_BAR_HEIGHT)
             .clip(CircleShape)
+            .then(
+                if (glass != null) {
+                    Modifier
+                        .homepageGlass(
+                            backdrop = glass,
+                            shape = CircleShape,
+                            tint = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f),
+                            highlight = MaterialTheme.colorScheme.surfaceBright.copy(alpha = 0.5f),
+                        )
+                        .border(
+                            1.dp,
+                            MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.7f),
+                            CircleShape,
+                        )
+                } else {
+                    Modifier
+                }
+            )
             .clickable(onClick = onClick),
         shape = CircleShape,
-        color = MaterialTheme.colorScheme.primaryContainer,
-        shadowElevation = 12.dp,
-        tonalElevation = 6.dp,
+        color = if (glass != null) Color.Transparent else MaterialTheme.colorScheme.primaryContainer,
+        shadowElevation = if (glass != null) 0.dp else 12.dp,
+        tonalElevation = if (glass != null) 0.dp else 6.dp,
     ) {
         Box(contentAlignment = Alignment.Center) {
             Icon(
@@ -126,13 +145,35 @@ internal fun EditActionBar(
     onReset: () -> Unit,
     onSave: () -> Unit,
     modifier: Modifier = Modifier,
+    glass: HomepageGlassBackdrop? = null,
 ) {
+    val shape = RoundedCornerShape(SEARCH_BAR_RADIUS)
     Surface(
-        modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(SEARCH_BAR_RADIUS),
-        color = MaterialTheme.colorScheme.surfaceBright,
-        shadowElevation = 12.dp,
-        tonalElevation = 6.dp,
+        modifier = modifier
+            .fillMaxWidth()
+            .then(
+                if (glass != null) {
+                    Modifier
+                        .homepageGlass(
+                            backdrop = glass,
+                            shape = shape,
+                            tint = MaterialTheme.colorScheme.surfaceBright.copy(alpha = 0.3f),
+                            highlight = MaterialTheme.colorScheme.surfaceBright.copy(alpha = 0.5f),
+                        )
+                        .border(
+                            1.dp,
+                            MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.7f),
+                            shape,
+                        )
+                } else {
+                    Modifier
+                }
+            )
+            .clip(shape),
+        shape = shape,
+        color = if (glass != null) Color.Transparent else MaterialTheme.colorScheme.surfaceBright,
+        shadowElevation = if (glass != null) 0.dp else 12.dp,
+        tonalElevation = if (glass != null) 0.dp else 6.dp,
     ) {
         Row(
             modifier = Modifier.padding(horizontal = 8.dp, vertical = 8.dp),
@@ -781,6 +822,13 @@ internal fun AppearancePanel(
                             label = "Card break below search bar",
                             checked = layout.searchBarBreak,
                             onCheckedChange = { onLayout(layout.copy(searchBarBreak = it)) },
+                        )
+                    }
+                    if (layout.searchBar == SearchBarPosition.BOTTOM) {
+                        SwitchRow(
+                            label = "Glass blur behind bottom bar",
+                            checked = layout.bottomBarGlass,
+                            onCheckedChange = { onLayout(layout.copy(bottomBarGlass = it)) },
                         )
                     }
 

@@ -61,7 +61,6 @@ enum class TileSize(val width: TileWidth, val height: TileHeight) {
     }
 }
 
-
 enum class SearchBarPosition { TOP, BOTTOM, INLINE, HIDDEN }
 enum class IconStyle { ACCENT, PLAIN, FILLED }
 enum class IconShape { CIRCLE, ARROW, PILL, TRIANGLE, GEM, COOKIE_4, COOKIE_6, CLOVER_4 }
@@ -71,8 +70,8 @@ enum class ChevronStyle {
     CONTAINED,
     HIDDEN,
 }
-enum class CornerStyle(val radius: Dp) { SOFT(16.dp), ROUNDED(24.dp), PILL(32.dp) }
 
+enum class CornerStyle(val radius: Dp) { SOFT(16.dp), ROUNDED(24.dp), PILL(32.dp) }
 
 enum class DividerStyle {
     NONE,
@@ -111,6 +110,7 @@ data class HomepageLayout(
     val header: HeaderConfig = HeaderConfig(),
     val searchBar: SearchBarPosition = SearchBarPosition.BOTTOM,
     val searchBarBreak: Boolean = false,
+    val bottomBarGlass: Boolean = false,
     val showSummaries: Boolean = true,
     val iconStyle: IconStyle = IconStyle.ACCENT,
     val chevronStyle: ChevronStyle = ChevronStyle.PLAIN,
@@ -330,6 +330,7 @@ internal object HomepageLayoutJson {
     private const val KEY_HEADER = "header"
     private const val KEY_SEARCH_BAR = "searchBar"
     private const val KEY_SEARCH_BAR_BREAK = "searchBarBreak"
+    private const val KEY_BOTTOM_BAR_GLASS = "bottomBarGlass"
     private const val KEY_SHOW_SUMMARIES = "showSummaries"
     private const val KEY_ICON_STYLE = "iconStyle"
     private const val KEY_ICON_COLOR = "iconColor"
@@ -374,6 +375,7 @@ internal object HomepageLayoutJson {
         })
         put(KEY_SEARCH_BAR, layout.searchBar.name)
         put(KEY_SEARCH_BAR_BREAK, layout.searchBarBreak)
+        put(KEY_BOTTOM_BAR_GLASS, layout.bottomBarGlass)
         put(KEY_SHOW_SUMMARIES, layout.showSummaries)
         put(KEY_ICON_STYLE, layout.iconStyle.name)
         layout.iconColor?.let { put(KEY_ICON_COLOR, it) }
@@ -408,6 +410,7 @@ internal object HomepageLayoutJson {
                 header = json.optJSONObject(KEY_HEADER).toHeaderConfig(fallback.header),
                 searchBar = enumOr(json.optString(KEY_SEARCH_BAR), fallback.searchBar),
                 searchBarBreak = json.optBoolean(KEY_SEARCH_BAR_BREAK, fallback.searchBarBreak),
+                bottomBarGlass = json.optBoolean(KEY_BOTTOM_BAR_GLASS, fallback.bottomBarGlass),
                 showSummaries = json.optBoolean(KEY_SHOW_SUMMARIES, fallback.showSummaries),
                 iconStyle = enumOr(json.optString(KEY_ICON_STYLE), fallback.iconStyle),
                 iconColor = json.optArgb(KEY_ICON_COLOR, fallback.iconColor),

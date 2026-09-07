@@ -275,6 +275,9 @@ fun SettingsHomepageScreen(
     }
 
     val gridState = rememberLazyGridState()
+    val glassBackdrop = rememberHomepageGlassBackdrop()
+    val glassEnabled = layout.bottomBarGlass &&
+        (editing || layout.searchBar == SearchBarPosition.BOTTOM)
     val reorderState = rememberGridReorderState(gridState) { from, to ->
         layout = layout.move(from, to)
     }
@@ -294,6 +297,15 @@ fun SettingsHomepageScreen(
                     state = gridState,
                     modifier = Modifier
                         .fillMaxSize()
+                        .then(
+                            if (glassEnabled) {
+                                Modifier
+                                    .homepageGlassSource(glassBackdrop)
+                                    .background(MaterialTheme.colorScheme.surfaceContainer)
+                            } else {
+                                Modifier
+                            }
+                        )
                         .then(
                             if (editing) {
                                 Modifier.homepageDragContainer(reorderState) {
@@ -408,6 +420,7 @@ fun SettingsHomepageScreen(
                     onDiscard = discardEdits,
                     onReset = { confirmingReset = true },
                     onSave = saveEdits,
+                    glass = glassBackdrop.takeIf { glassEnabled },
                     modifier = Modifier.align(Alignment.BottomCenter),
                 )
             }
@@ -663,6 +676,7 @@ private fun BottomChrome(
     onDiscard: () -> Unit,
     onReset: () -> Unit,
     onSave: () -> Unit,
+    glass: HomepageGlassBackdrop? = null,
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -689,6 +703,7 @@ private fun BottomChrome(
                     onCancel = onDiscard,
                     onReset = onReset,
                     onSave = onSave,
+                    glass = glass,
                     modifier = Modifier.weight(1f),
                 )
 
@@ -696,10 +711,11 @@ private fun BottomChrome(
                     PinnedSearchBar(
                         hint = searchHint,
                         onClick = onSearchClick,
+                        glass = glass,
                         modifier = Modifier.weight(1f),
                     )
                     Spacer(Modifier.width(10.dp))
-                    EditModeButton(onClick = onEnterEditMode)
+                    EditModeButton(onClick = onEnterEditMode, glass = glass)
                 }
 
                 else -> {

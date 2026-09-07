@@ -634,20 +634,34 @@ internal fun PinnedSearchBar(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     elevated: Boolean = true,
+    glass: HomepageGlassBackdrop? = null,
 ) {
+    val shape = RoundedCornerShape(SEARCH_BAR_RADIUS)
     Surface(
         modifier = modifier
             .height(SEARCH_BAR_HEIGHT)
-            .clip(RoundedCornerShape(SEARCH_BAR_RADIUS))
+            .then(
+                if (glass != null) {
+                    Modifier.homepageGlass(
+                        backdrop = glass,
+                        shape = shape,
+                        tint = MaterialTheme.colorScheme.surfaceBright.copy(alpha = 0.6f),
+                        highlight = MaterialTheme.colorScheme.surfaceBright.copy(alpha = 0.5f),
+                    )
+                } else {
+                    Modifier
+                }
+            )
+            .clip(shape)
             .clickable(onClick = onClick),
-        shape = RoundedCornerShape(SEARCH_BAR_RADIUS),
-        color = MaterialTheme.colorScheme.surfaceBright,
+        shape = shape,
+        color = if (glass != null) Color.Transparent else MaterialTheme.colorScheme.surfaceBright,
         border = BorderStroke(
             1.dp,
             MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.7f),
         ),
         shadowElevation = if (elevated) 12.dp else 0.dp,
-        tonalElevation = if (elevated) 6.dp else 0.dp,
+        tonalElevation = if (elevated && glass == null) 6.dp else 0.dp,
     ) {
         SearchBarBody(size = TileSize.ROW, hint = hint)
     }
