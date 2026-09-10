@@ -81,6 +81,10 @@
         android:summary="@string/game_space_summary"
         android:order="-994"
         settings:controller="com.android.settings.applications.GameSpaceController">
+        <intent
+            android:action="android.intent.action.MAIN"
+            android:targetPackage="io.chaldeaprjkt.gamespace"
+            android:targetClass="io.chaldeaprjkt.gamespace.settings.SettingsActivity" />
     </Preference>
 
     <SwitchPreferenceCompat
