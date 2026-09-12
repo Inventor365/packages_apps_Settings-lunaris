@@ -3378,8 +3378,8 @@
     <!-- Display settings screen, summary of Dark UI when on and controlled by Modes. [CHAR LIMIT=NONE] -->
     <string name="dark_ui_summary_on_auto_mode_modes">Will turn off when <xliff:g name="modeName" example="Bedtime">%1$s</xliff:g> ends</string>
     <!-- Dark theme screen, description of Dark theme feature. [CHAR LIMIT=NONE] -->
-    <string name="dark_ui_text">Dark theme uses a black background to help keep battery alive longer on some screens. Dark theme schedules wait to turn on until your screen is off.</string>
-    <string name="dark_ui_text_force_invert">Use a dark background to make your screen more comfortable to view and reduce battery usage on some screens. Your theme will change if you have a schedule, when the screen is off.</string>
+    <string name="dark_ui_text">Dark theme uses a black background to help keep battery alive longer on some screens.</string>
+    <string name="dark_ui_text_force_invert">Use a dark background to make your screen more comfortable to view and reduce battery usage on some screens.</string>
     <!-- Dark UI screen footer summary text shown when the when Dark theme turns on/off automatically according to a user bedtime schedule. [CHAR LIMIT=NONE] -->
     <string name="dark_ui_bedtime_footer_summary">Dark theme is currently following your Bedtime mode schedule</string>
     <!-- Dark UI screen footer action text shown when the when Dark theme turns on/off automatically according to a user bedtime schedule. [CHAR LIMIT=NONE] -->
