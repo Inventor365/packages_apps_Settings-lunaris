@@ -6247,6 +6247,11 @@
                        android:value="true" />
         </activity>
 
+        <service
+            android:name="org.lunaris.settings.fragments.miscellaneous.PifAutoUpdateJobService"
+            android:permission="android.permission.BIND_JOB_SERVICE"
+            android:exported="false" />
+
         <!-- Provide direct entry into Dev settings - Running Services -->
         <activity android:name="Settings$DevRunningServicesActivity"
                 android:label="@string/runningservices_settings_title"
