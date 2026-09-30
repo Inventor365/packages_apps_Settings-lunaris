@@ -12,6 +12,9 @@
 }
 -keep class org.lunaris.settings.**
 
+# Lock Styles reads the custom clock styles from here by reflection.
+-keep class org.lunaris.settings.fragments.lockscreen.ClockUtils { *; }
+
 # Keep all preference controllers needed by slice and DashboardFragment.
 -keep class * extends com.android.settings.core.BasePreferenceController {
     *;
