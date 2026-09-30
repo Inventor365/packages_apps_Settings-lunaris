@@ -5392,10 +5392,11 @@
                 android:resource="@layout/video_wallpaper" />
         </service>
 
+        <!-- Lock Styles asks for the depth subject when it sets a photo lock screen. -->
         <service
             android:name="org.lunaris.settings.utils.WallpaperSubjectExtractorService"
-            android:exported="false"
-            android:permission="android.permission.MANAGE_USERS" />
+            android:exported="true"
+            android:permission="android.permission.WRITE_SECURE_SETTINGS" />
 
         <activity
             android:name=".HelpTrampoline"
