@@ -667,4 +667,7 @@ public class Settings extends SettingsActivity {
     public static class SleepModeActivity extends SettingsActivity {}
 
     public static class ScreenRefreshRateActivity extends SettingsActivity {}
+
+    // QuickLaunch
+    public static class QuickLaunchSettingsActivity extends SettingsActivity {}
 }

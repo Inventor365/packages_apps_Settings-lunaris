@@ -134,6 +134,7 @@ import com.android.settings.gestures.PickupGestureSettings;
 import com.android.settings.gestures.PowerMenuSettings;
 import com.android.settings.gestures.SwipeToNotificationSettings;
 import com.android.settings.gestures.SystemNavigationGestureSettings;
+import com.android.settings.gestures.quicklaunch.QuickLaunchSettings;
 import com.android.settings.inputmethod.AvailableVirtualKeyboardFragment;
 import com.android.settings.inputmethod.KeyboardSettings;
 import com.android.settings.inputmethod.ModifierKeysSettings;
@@ -318,6 +319,7 @@ public class SettingsGateway {
             PickupGestureSettings.class.getName(),
             DoubleTwistGestureSettings.class.getName(),
             SystemNavigationGestureSettings.class.getName(),
+            QuickLaunchSettings.class.getName(),
             ShadePanelsFragment.class.getName(),
             DataUsageSummary.class.getName(),
             DreamSettings.class.getName(),
