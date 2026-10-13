@@ -102,7 +102,7 @@ public class QuickLaunchHelper {
 
     public boolean isQuickLaunchEnabled() {
         return Settings.Secure.getInt(mContext.getContentResolver(),
-                SETTING_QUICK_LAUNCH_ENABLED, 1) == 1;
+                SETTING_QUICK_LAUNCH_ENABLED, 0) == 1;
     }
 
     public void setQuickLaunchEnabled(boolean enabled) {
