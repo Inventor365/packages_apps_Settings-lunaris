@@ -61,7 +61,11 @@ class ComposeHomepageController(private val activity: SettingsHomepageActivity) 
     }
 
     private var userInfoReceiver: BroadcastReceiver? = null
+    private var wifiStateReceiver: BroadcastReceiver? = null
     private var airplaneModeReceiver: BroadcastReceiver? = null
+    private val wifiManager by lazy {
+        activity.applicationContext.getSystemService(WifiManager::class.java)
+    }
 
     private val editModeBackCallback = object : OnBackPressedCallback(false) {
         override fun handleOnBackPressed() {
@@ -76,8 +80,6 @@ class ComposeHomepageController(private val activity: SettingsHomepageActivity) 
         setupEdgeToEdge()
         activity.onBackPressedDispatcher.addCallback(activity, editModeBackCallback)
 
-        val wifiManager = activity.applicationContext
-            .getSystemService(Context.WIFI_SERVICE) as? WifiManager
         val connectivityManager = activity.applicationContext
             .getSystemService(ConnectivityManager::class.java)
 
@@ -159,16 +161,19 @@ class ComposeHomepageController(private val activity: SettingsHomepageActivity) 
 
     fun onStart() {
         registerUserInfoReceiver()
+        registerWifiStateReceiver()
         registerAirplaneModeReceiver()
     }
 
     fun onResume() {
         SettingsHomepageComposeInterop.updateUserInfo(getUserName(), getAvatarBitmap())
+        updateWifiState()
         SettingsHomepageComposeInterop.updateAirplaneMode(isAirplaneModeOn(), null)
     }
 
     fun onStop() {
         unregisterUserInfoReceiver()
+        unregisterWifiStateReceiver()
         unregisterAirplaneModeReceiver()
     }
 
@@ -263,6 +268,32 @@ class ComposeHomepageController(private val activity: SettingsHomepageActivity) 
         userInfoReceiver?.let {
             activity.unregisterReceiver(it)
             userInfoReceiver = null
+        }
+    }
+
+    private fun updateWifiState() {
+        SettingsHomepageComposeInterop.updateWifiState(wifiManager?.isWifiEnabled ?: false, null)
+    }
+
+    private fun registerWifiStateReceiver() {
+        if (wifiStateReceiver != null) return
+        wifiStateReceiver = object : BroadcastReceiver() {
+            override fun onReceive(context: Context, intent: Intent) {
+                updateWifiState()
+            }
+        }
+        activity.registerReceiver(
+            wifiStateReceiver,
+            IntentFilter(WifiManager.WIFI_STATE_CHANGED_ACTION),
+            Context.RECEIVER_EXPORTED
+        )
+        updateWifiState()
+    }
+
+    private fun unregisterWifiStateReceiver() {
+        wifiStateReceiver?.let {
+            activity.unregisterReceiver(it)
+            wifiStateReceiver = null
         }
     }
 

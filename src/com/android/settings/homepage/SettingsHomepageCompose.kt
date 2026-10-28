@@ -761,17 +761,17 @@ object SettingsHomepageComposeInterop {
     ) {
         val controller = HomepageEditController()
         editController = controller
+        val wifiEnabledMutableState = mutableStateOf(isWifiEnabled)
+        val wifiSummaryMutableState = mutableStateOf(wifiSummary)
+        wifiEnabledState = wifiEnabledMutableState
+        wifiSummaryState = wifiSummaryMutableState
         view.setContent {
             val userNameMutableState = remember { mutableStateOf(userName) }
             val avatarBitmapMutableState = remember { mutableStateOf(avatarBitmap) }
-            val wifiEnabledMutableState = remember { mutableStateOf(isWifiEnabled) }
-            val wifiSummaryMutableState = remember { mutableStateOf(wifiSummary) }
             val airplaneModeMutableState = remember { mutableStateOf(isAirplaneModeOn) }
             val airplaneSummaryMutableState = remember { mutableStateOf(airplaneSummary) }
             userNameState = userNameMutableState
             avatarBitmapState = avatarBitmapMutableState
-            wifiEnabledState = wifiEnabledMutableState
-            wifiSummaryState = wifiSummaryMutableState
             airplaneModeState = airplaneModeMutableState
             airplaneSummaryState = airplaneSummaryMutableState
 
@@ -791,7 +791,6 @@ object SettingsHomepageComposeInterop {
                     isWifiEnabled = wifiEnabledMutableState.value,
                     wifiSummary = wifiSummaryMutableState.value,
                     onWifiToggle = { enabled ->
-                        wifiEnabledMutableState.value = enabled
                         onWifiToggle.accept(enabled)
                     },
                     isAirplaneModeOn = airplaneModeMutableState.value,
