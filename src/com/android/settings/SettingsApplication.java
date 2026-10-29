@@ -42,6 +42,7 @@ import com.android.settings.msds.MSDLPlayerWrapper;
 import com.android.settings.overlay.FeatureFactory;
 import com.android.settings.overlay.FeatureFactoryImpl;
 import com.android.settings.spa.SettingsSpaEnvironment;
+import com.android.settings.widget.SettingsViewOverscroll;
 import com.android.settingslib.applications.AppIconCacheManager;
 import com.android.settingslib.datastore.BackupRestoreStorageManager;
 import com.android.settingslib.metadata.FixedArrayMap;
@@ -105,6 +106,7 @@ public class SettingsApplication extends Application {
         }
 
         registerActivityLifecycleCallbacks(new DeveloperOptionsActivityLifecycle());
+        SettingsViewOverscroll.install(this);
 
         if (Flags.msdlFeedback()) {
             MSDLPlayerWrapper.INSTANCE.createPlayer(this);

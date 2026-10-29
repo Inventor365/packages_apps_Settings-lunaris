@@ -25,6 +25,7 @@ import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.preference.Preference
 import androidx.preference.PreferenceViewHolder
 import com.android.settings.R
+import com.android.settings.widget.setSettingsContent
 import com.android.settingslib.spa.framework.theme.SettingsTheme
 import com.android.settingslib.widget.GroupSectionDividerMixin
 import com.android.settingslib.widget.NormalPaddingMixin
@@ -70,7 +71,7 @@ constructor(
 
         (holder.itemView as ComposeView).apply {
             setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
-            setContent {
+            setSettingsContent {
                 SettingsTheme {
                     content()
                 }

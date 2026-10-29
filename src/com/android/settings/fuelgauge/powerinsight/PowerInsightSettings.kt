@@ -65,6 +65,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.android.settings.R
 import com.android.settings.search.BaseSearchIndexProvider
+import com.android.settings.widget.setSettingsContent
 import com.android.settingslib.search.SearchIndexable
 import com.android.settingslib.spa.framework.theme.SettingsTheme
 
@@ -86,7 +87,7 @@ class PowerInsightSettings : Fragment() {
             ViewGroup.LayoutParams.MATCH_PARENT,
         )
         setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
-        setContent {
+        setSettingsContent {
             SettingsTheme {
                 PowerInsightAccentTheme {
                     PowerInsightRoot()

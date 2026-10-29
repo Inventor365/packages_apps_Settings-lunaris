@@ -63,6 +63,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.android.axion.compose.theme.AxionTheme
 import com.android.settings.R
+import com.android.settings.widget.setSettingsContent
 import java.util.function.Consumer
 
 class HomepageEditController {
@@ -765,7 +766,7 @@ object SettingsHomepageComposeInterop {
         val wifiSummaryMutableState = mutableStateOf(wifiSummary)
         wifiEnabledState = wifiEnabledMutableState
         wifiSummaryState = wifiSummaryMutableState
-        view.setContent {
+        view.setSettingsContent {
             val userNameMutableState = remember { mutableStateOf(userName) }
             val avatarBitmapMutableState = remember { mutableStateOf(avatarBitmap) }
             val airplaneModeMutableState = remember { mutableStateOf(isAirplaneModeOn) }

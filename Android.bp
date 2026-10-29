@@ -150,6 +150,7 @@ android_library {
         "androidx.compose.material3_material3-window-size-class",
         "androidx.activity_activity-compose",
         "androidx.core_core-ktx",
+        "androidx.dynamicanimation_dynamicanimation",
         "tensorflowlite_java",
         "tflite_support_java",
         "tensorflow-lite-gpu",

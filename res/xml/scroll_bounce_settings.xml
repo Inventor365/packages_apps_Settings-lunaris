@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Copyright (C) 2024-2026 Lunaris AOSP
+     SPDX-License-Identifier: Apache-2.0 -->
+<PreferenceScreen
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:settings="http://schemas.android.com/apk/res-auto"
+    android:title="@string/settings_scroll_bounce_title">
+
+    <org.lunaris.settings.preferences.SystemSettingSwitchPreference
+        android:key="settings_spring_scroll"
+        android:title="@string/settings_scroll_bounce_enabled"
+        android:summary="@string/settings_scroll_bounce_enabled_summary"
+        android:defaultValue="true" />
+
+    <org.lunaris.settings.preferences.SystemSettingSeekBarPreference
+        android:key="settings_scroll_stiffness"
+        android:title="@string/settings_scroll_stiffness_title"
+        android:summary="@string/settings_scroll_stiffness_summary"
+        android:dependency="settings_spring_scroll"
+        android:defaultValue="200"
+        android:max="1000"
+        settings:min="50"
+        settings:interval="10" />
+
+    <org.lunaris.settings.preferences.SystemSettingSeekBarPreference
+        android:key="settings_scroll_damping"
+        android:title="@string/settings_scroll_damping_title"
+        android:summary="@string/settings_scroll_damping_summary"
+        android:dependency="settings_spring_scroll"
+        android:defaultValue="50"
+        android:max="100"
+        settings:min="20"
+        settings:units="%" />
+
+    <org.lunaris.settings.preferences.SystemSettingSeekBarPreference
+        android:key="settings_scroll_stretch"
+        android:title="@string/settings_scroll_stretch_title"
+        android:summary="@string/settings_scroll_stretch_summary"
+        android:dependency="settings_spring_scroll"
+        android:defaultValue="15"
+        android:max="30"
+        settings:min="5"
+        settings:units="%" />
+
+    <org.lunaris.settings.preferences.SystemSettingSeekBarPreference
+        android:key="settings_scroll_velocity"
+        android:title="@string/settings_scroll_velocity_title"
+        android:summary="@string/settings_scroll_velocity_summary"
+        android:dependency="settings_spring_scroll"
+        android:defaultValue="25"
+        android:max="100"
+        settings:min="0"
+        settings:units="%" />
+
+    <com.android.settingslib.widget.FooterPreference
+        android:key="settings_scroll_bounce_footer"
+        android:title="@string/settings_scroll_bounce_footer"
+        android:selectable="false" />
+</PreferenceScreen>

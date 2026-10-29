@@ -17,7 +17,9 @@
 package com.android.settings.spa
 
 import android.content.Context
+import android.os.Bundle
 import android.util.FeatureFlagUtils
+import androidx.compose.runtime.Composable
 import com.android.settings.network.apn.ApnEditPageProvider
 import com.android.settings.print.PrintSettingsPageProvider
 import com.android.settings.spa.about.AboutPhonePageProvider
@@ -58,6 +60,8 @@ import com.android.settings.spa.system.AppLanguagesPageProvider
 import com.android.settings.spa.system.LanguageAndInputPageProvider
 import com.android.settings.spa.system.SystemMainPageProvider
 import com.android.settings.wifi.details2.WifiPrivacyPageProvider
+import com.android.settings.widget.SettingsOverscroll
+import com.android.settingslib.spa.framework.common.SettingsPageProvider
 import com.android.settingslib.spa.framework.common.SettingsPageProviderRepository
 import com.android.settingslib.spa.framework.common.SpaEnvironment
 import com.android.settingslib.spa.framework.common.SpaLogger
@@ -92,7 +96,8 @@ open class SettingsSpaEnvironment(context: Context) : SpaEnvironment(context) {
             TogglePermissionAppListTemplate(allProviders = getTogglePermissionAppListProviders())
         SettingsPageProviderRepository(
             allPageProviders =
-                settingsPageProviders() + togglePermissionAppListTemplate.createPageProviders(),
+                (settingsPageProviders() + togglePermissionAppListTemplate.createPageProviders())
+                    .map { SpringPageProvider(it) },
             rootPages = listOf(HomePageProvider.createSettingsPage()),
         )
     }
@@ -135,5 +140,13 @@ open class SettingsSpaEnvironment(context: Context) : SpaEnvironment(context) {
 
     override val isSpaExpressiveEnabled by lazy {
         super.isSpaExpressiveEnabled || Flags.isExpressiveDesignEnabled()
+    }
+}
+
+private class SpringPageProvider(private val delegate: SettingsPageProvider) :
+    SettingsPageProvider by delegate {
+    @Composable
+    override fun Page(arguments: Bundle?) {
+        SettingsOverscroll { delegate.Page(arguments) }
     }
 }

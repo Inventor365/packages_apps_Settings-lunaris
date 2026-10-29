@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Copyright (C) 2024-2026 Lunaris AOSP
+     SPDX-License-Identifier: Apache-2.0 -->
+<resources>
+    <string name="settings_scroll_bounce_title">Scroll bounce</string>
+    <string name="settings_scroll_bounce_summary">Elastic scrolling and spring tuning</string>
+    <string name="settings_scroll_bounce_enabled">Use spring scrolling</string>
+    <string name="settings_scroll_bounce_enabled_summary">Let content bounce gently at the ends of a page</string>
+    <string name="settings_scroll_stiffness_title">Spring stiffness</string>
+    <string name="settings_scroll_stiffness_summary">Higher values return to rest faster</string>
+    <string name="settings_scroll_damping_title">Bounce damping</string>
+    <string name="settings_scroll_damping_summary">Lower values make the return more bouncy</string>
+    <string name="settings_scroll_stretch_title">Maximum overscroll</string>
+    <string name="settings_scroll_stretch_summary">How far content can move beyond a scroll edge</string>
+    <string name="settings_scroll_velocity_title">Fling response</string>
+    <string name="settings_scroll_velocity_summary">How strongly a fling bounces at the end of a list</string>
+    <string name="settings_scroll_bounce_footer">Applies throughout Settings, including the Compose home. Changes take effect on your next scroll.</string>
+</resources>

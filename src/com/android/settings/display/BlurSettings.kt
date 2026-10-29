@@ -75,6 +75,7 @@ import androidx.compose.ui.unit.sp
 import androidx.fragment.app.Fragment
 import com.android.settings.theme.*
 import com.android.settings.R
+import com.android.settings.widget.setSettingsContent
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 import kotlinx.coroutines.delay
@@ -94,7 +95,7 @@ class BlurSettings : Fragment() {
         savedInstanceState: Bundle?
     ): View {
         return ComposeView(requireContext()).apply {
-            setContent {
+            setSettingsContent {
                 Themes {
                     BlurSettingsScreen()
                 }
